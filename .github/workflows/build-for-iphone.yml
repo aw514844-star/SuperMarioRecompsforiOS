@@ -1,5 +1,14 @@
 name: Build a game for iPhone and iPad
-# Modified to inject external game data assets for KartPad compilation
+# For players without a Mac with Apple Silicon. Use a public fork for the listed games
+# except DarkPad, which requires a private repository and its Actions allowance. Open
+# Actions, choose this workflow, pick a game and press Run workflow. GitHub makes your
+# copy from the game's latest release, the same way PadMint does on a Mac. These games
+# take your own game file inside the app after installing, so nothing of yours is
+# uploaded. The IPA stays with your run for one day: download it, install it with
+# Sideloadly and add your game in the app. README: "No Mac? Build on GitHub's Mac".
+# On a pull request that changes this route, and every Monday in PadMint's own repository,
+# every listed game is built on a clean Mac and nothing is kept: a game whose setup
+# commands or recipe stopped working on a fresh Mac fails here before players find it.
 on:
   workflow_dispatch:
     inputs:
@@ -31,18 +40,16 @@ on:
       - scripts/github-build.py
       - 'catalog/**'
       - 'padmint/**'
+      # The browser window: builds run "python -m padmint make", which never loads it.
       - '!padmint/ui.py'
       - 'tests/test_github_build.py'
   schedule:
     - cron: '0 3 * * 1'
-
 permissions:
   contents: read
-
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
   cancel-in-progress: ${{ github.event_name == 'pull_request' }}
-
 jobs:
   select-games:
     if: github.event_name != 'schedule' || github.repository == 'chrissotraidis/padmint'
@@ -50,21 +57,19 @@ jobs:
     outputs:
       matrix: ${{ steps.games.outputs.matrix }}
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
         with:
           persist-credentials: false
       - id: games
         env:
           GAME: ${{ github.event_name == 'workflow_dispatch' && inputs.game || '' }}
         run: |
-          # Inject kartpad manually into the matrix calculation if chosen
           if [ "$GAME" = "kartpad" ]; then
             echo 'matrix={"include":[{"game":"kartpad"}]}' >> "$GITHUB_OUTPUT"
           else
             matrix=$(python3 scripts/github-build.py --matrix "$GAME")
             echo "matrix=$matrix" >> "$GITHUB_OUTPUT"
           fi
-
   build:
     needs: select-games
     runs-on: macos-15
@@ -79,39 +84,42 @@ jobs:
       GAME: ${{ matrix.game }}
       PADMINT_REPOSITORY_PRIVATE: ${{ github.event.repository.private }}
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
         with:
           persist-credentials: false
-
-      - name: Fetch Remote Game Assets (KartPad Fallback)
-        if: matrix.game == 'kartpad'
-        run: |
-          echo "Downloading game data assets to bypass local disk check..."
-          mkdir -p "$RUNNER_TEMP/padmint/extracted"
-          # Replace the URL below with your cloud link containing the extracted PAL files
-          curl -L "YOUR_EXTERNAL_STORAGE_URL_HERE" -o "$RUNNER_TEMP/game_assets.zip"
-          unzip -q "$RUNNER_TEMP/game_assets.zip" -d "$RUNNER_TEMP/padmint/extracted/"
-
       - name: Make your copy on a fresh Mac
         run: |
           xcodebuild -version
           df -h "$RUNNER_TEMP"
           
-          # Run compilation. If kartpad, point directly to the injected asset path
           if [ "$GAME" = "kartpad" ]; then
-            /usr/bin/python3 scripts/github-build.py "kartpad" --assets "$RUNNER_TEMP/padmint/extracted" --out "$RUNNER_TEMP/out"
+            echo "Intercepting build for KartPad compilation..."
+            # Clone the specific repository layout for KartPad into the workspace
+            git clone --recursive https://github.com "$RUNNER_TEMP/kartpad_src"
+            cd "$RUNNER_TEMP/kartpad_src"
+            
+            # Setup build environment mimicking the PadMint macro sequence
+            mkdir -p "$RUNNER_TEMP/out"
+            
+            # Compile using Xcode command-line tools to produce the unsigned IPA payload
+            xcodebuild -project KartPad.xcodeproj -scheme KartPad -configuration Release -sdk iphoneos CONFIGURATION_BUILD_DIR="$RUNNER_TEMP/out" clean build
+            
+            # Pack the built binary application bundle into a valid IPA file layout
+            cd "$RUNNER_TEMP/out"
+            mkdir -p Payload
+            mv KartPad.app Payload/
+            zip -r kartpad.ipa Payload
+            rm -rf Payload
           else
             PADMINT_HOME="$RUNNER_TEMP/padmint" /usr/bin/python3 scripts/github-build.py "$GAME" --out "$RUNNER_TEMP/out"
           fi
-
       - name: Checksums
         working-directory: ${{ runner.temp }}/out
         run: |
           ls -la
           shasum -a 256 ./*.ipa | tee SHA256SUMS
-
       - if: github.event_name == 'workflow_dispatch'
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
         with:
           name: ${{ matrix.game }}-iphone-${{ github.run_number }}
           path: |
