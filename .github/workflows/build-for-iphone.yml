@@ -26,7 +26,6 @@ on:
           - f0x
           - galaxypad
           - harkinianpad
-          - kartpad
           - maskpad
           - openrct2touch
           - paperpad
@@ -64,12 +63,8 @@ jobs:
         env:
           GAME: ${{ github.event_name == 'workflow_dispatch' && inputs.game || '' }}
         run: |
-          if [ "$GAME" = "kartpad" ]; then
-            echo 'matrix={"include":[{"game":"kartpad"}]}' >> "$GITHUB_OUTPUT"
-          else
-            matrix=$(python3 scripts/github-build.py --matrix "$GAME")
-            echo "matrix=$matrix" >> "$GITHUB_OUTPUT"
-          fi
+          matrix=$(python3 scripts/github-build.py --matrix "$GAME")
+          echo "matrix=$matrix" >> "$GITHUB_OUTPUT"
   build:
     needs: select-games
     runs-on: macos-15
@@ -91,28 +86,7 @@ jobs:
         run: |
           xcodebuild -version
           df -h "$RUNNER_TEMP"
-          
-          if [ "$GAME" = "kartpad" ]; then
-            echo "Intercepting build for KartPad compilation..."
-            # Clone the specific repository layout for KartPad into the workspace
-            git clone --recursive https://github.com "$RUNNER_TEMP/kartpad_src"
-            cd "$RUNNER_TEMP/kartpad_src"
-            
-            # Setup build environment mimicking the PadMint macro sequence
-            mkdir -p "$RUNNER_TEMP/out"
-            
-            # Compile using Xcode command-line tools to produce the unsigned IPA payload
-            xcodebuild -project KartPad.xcodeproj -scheme KartPad -configuration Release -sdk iphoneos CONFIGURATION_BUILD_DIR="$RUNNER_TEMP/out" clean build
-            
-            # Pack the built binary application bundle into a valid IPA file layout
-            cd "$RUNNER_TEMP/out"
-            mkdir -p Payload
-            mv KartPad.app Payload/
-            zip -r kartpad.ipa Payload
-            rm -rf Payload
-          else
-            PADMINT_HOME="$RUNNER_TEMP/padmint" /usr/bin/python3 scripts/github-build.py "$GAME" --out "$RUNNER_TEMP/out"
-          fi
+          PADMINT_HOME="$RUNNER_TEMP/padmint" /usr/bin/python3 scripts/github-build.py "$GAME" --out "$RUNNER_TEMP/out"
       - name: Checksums
         working-directory: ${{ runner.temp }}/out
         run: |
