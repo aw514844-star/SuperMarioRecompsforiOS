@@ -35,4 +35,8 @@ People who want to make some of these games by themselves just has to fork this 
 
 🤝 Credits
 
-Massive thanks and full credit to Padmint for making these incredible ports possible and Vimms Lair for supplying us free roms. Nintendo, please don’t take this down I. My mom is kinda homeless 😭, I live with my dad and I wanna help her out by leting her play these games. from Jack Sparrow 🏴‍☠️
+Massive thanks and full credit to Padmint for making these incredible ports possible and Vimms Lair for supplying us free roms. 
+
+Note to Nintendo:
+
+Nintendo, please don’t take this down I. My mom is kinda homeless 😭, I live with my dad and I wanna help her out by leting her play these games. from Jack Sparrow 🏴‍☠️
