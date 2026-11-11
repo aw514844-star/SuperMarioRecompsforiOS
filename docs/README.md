@@ -31,9 +31,8 @@ Prerequisites
 
 How to build
 
-People who want to make some of these games by themselves just has to fork this repository, go on actions, press build for iPhones, press run workflow and select the game. Making it usually takes 15-25 minutes. After it finished press summary, scroll down, download the zip, uncompress the zip, open the folder and then sideload the ipa in there.
+People who want to make some of these games by themselves just has to fork this repository, go on actions, press the first workflow, press run workflow and select the game. Making it usually takes 15-25 minutes. After it finished press summary, scroll down, download the zip, uncompress the zip, open the folder and then sideload the ipa in there.
 
-🤝 Credits & Acknowledgments
+🤝 Credits
 
-• Padmint: Massive thanks and full credit to Padmint for making these incredible ports possible.
-• The Recompilation Community: Thank you to the developers and researchers whose tools paved the way for static recompilation on modern platforms.
+Massive thanks and full credit to Padmint for making these incredible ports possible and Vimms Lair for supplying us free roms. Nintendo, please don’t take this down I. My mom is kinda homeless 😭, I live with my dad and I wanna help her out by leting her play these games. from Jack Sparrow 🏴‍☠️
